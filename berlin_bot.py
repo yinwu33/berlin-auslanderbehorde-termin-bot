@@ -7,9 +7,14 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
-
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 system = system()
+
+default_timeout = 30
+default_time_sleep = 10
 
 logging.basicConfig(
     format='%(asctime)s\t%(levelname)s\t%(message)s',
@@ -37,86 +42,111 @@ class WebDriver:
         self._driver.quit()
 
 class BerlinBot:
-    def __init__(self):
+    def __init__(self, driver: webdriver.Chrome):
+        self.driver = driver
         self.wait_time = 20
         self._sound_file = os.path.join(os.getcwd(), "alarm.wav")
         self._error_message = """Für die gewählte Dienstleistung sind aktuell keine Termine frei! Bitte"""
 
-    @staticmethod
-    def enter_start_page(driver: webdriver.Chrome):
+    def clickPATH(self, element: str):
+        try:
+            elem = WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, element)))
+            self.driver.find_element(By.XPATH, element).click()
+        except TimeoutException:
+            print(f"Element not found: {element}")
+
+    
+    def clickID(self, id: str):
+        try:
+            WebDriverWait(self.driver, default_timeout).until(EC.element_to_be_clickable((By.ID, id)))
+            self.driver.find_element(By.ID, id).click()
+        except TimeoutException:
+            print(f"Element not found: {id}")
+            time.sleep(default_time_sleep)
+            self.driver.find_element(By.ID, id).click()
+
+    def select(self, id: str, text: str):
+        try:
+            # WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.ID, id)))
+            WebDriverWait(self.driver, default_timeout).until(EC.visibility_of_element_located((By.ID, id)))
+            s = Select(self.driver.find_element(By.ID, id))
+            s.select_by_visible_text(text)
+        except TimeoutException:
+            print(f"Element not found: {id}")
+            time.sleep(default_time_sleep)
+            s = Select(self.driver.find_element(By.ID, id))
+            s.select_by_visible_text(text)
+
+    def enter_start_page(self):
         logging.info("Visit start page")
-        driver.get("https://otv.verwalt-berlin.de/ams/TerminBuchen")
-        driver.find_element(By.XPATH, '//*[@id="mainForm"]/div/div/div/div/div/div/div/div/div/div[1]/div[1]/div[2]/a').click()
-        time.sleep(5)
+        self.driver.get("https://otv.verwalt-berlin.de/ams/TerminBuchen")
 
-    @staticmethod
-    def tick_off_some_bullshit(driver: webdriver.Chrome):
+        self.clickPATH('//*[@id="mainForm"]/div/div/div/div/div/div/div/div/div/div[1]/div[1]/div[2]/a')
+
+    def tick_off_some_bullshit(self):
         logging.info("Ticking off agreement")
-        driver.find_element(By.XPATH, '//*[@id="xi-div-1"]/div[4]/label[2]/p').click()
-        time.sleep(1)
-        driver.find_element(By.ID, 'applicationForm:managedForm:proceed').click()
-        time.sleep(5)
 
-    @staticmethod
-    def enter_form(driver: webdriver.Chrome):
+        self.clickPATH('//*[@id="xi-div-1"]/div[4]/label[2]/p')
+        self.clickID('applicationForm:managedForm:proceed')
+
+    def enter_form(self):
         logging.info("Fill out form")
+
         # select china
-        s = Select(driver.find_element(By.ID, 'xi-sel-400'))
-        s.select_by_visible_text("China")
+        self.select('xi-sel-400', 'China')
+
         # eine person
-        s = Select(driver.find_element(By.ID, 'xi-sel-422'))
-        s.select_by_visible_text("eine Person")
+        self.select('xi-sel-422', 'eine Person')
+
         # no family
-        s = Select(driver.find_element(By.ID, 'xi-sel-427' ))
-        s.select_by_visible_text("nein")
-        time.sleep(5)
+        self.select('xi-sel-427', 'nein')
 
         # extend stay
-        driver.find_element(By.XPATH, '//*[@id="xi-div-30"]/div[2]/label/p').click()
-        time.sleep(2)
+        self.clickPATH('//*[@id="xi-div-30"]/div[2]/label/p')
 
         # click on study group
-        driver.find_element(By.XPATH, '//*[@id="inner-479-0-2"]/div/div[1]/label/p').click()
-        time.sleep(2)
+        self.clickPATH('//*[@id="inner-479-0-2"]/div/div[3]/label/p')
 
         # b/c of stufy
-        driver.find_element(By.XPATH, '//*[@id="inner-479-0-2"]/div/div[2]/div/div[5]/label').click()
-        time.sleep(4)
+        self.clickPATH('//*[@id="inner-479-0-2"]/div/div[4]/div/div[3]/label')
 
         # submit form
-        driver.find_element(By.ID, 'applicationForm:managedForm:proceed').click()
-        time.sleep(10)
+        self.submit()
+
+    def submit(self):
+        self.clickID('applicationForm:managedForm:proceed')
     
     def _success(self):
         logging.info("!!!SUCCESS - do not close the window!!!!")
         while True:
             self._play_sound_osx(self._sound_file)
-            time.sleep(15)
+            time.sleep(5)
         
         # todo play something and block the browser
 
-
-    def run_once(self):
+    @staticmethod
+    def run_once():
         with WebDriver() as driver:
-            self.enter_start_page(driver)
-            self.tick_off_some_bullshit(driver)
-            self.enter_form(driver)
+            bot = BerlinBot(driver)
+            bot.enter_start_page()
+            bot.tick_off_some_bullshit()
+            bot.enter_form()
 
             # retry submit
-            for _ in range(10):
-                if not self._error_message in driver.page_source:
-                    self._success()
+            for _ in range(20):
+                if "Auswahl Termin" in driver.page_source:
+                    bot._success()
                 logging.info("Retry submitting form")
-                driver.find_element(By.ID, 'applicationForm:managedForm:proceed').click()
-                time.sleep(self.wait_time)
-
-    def run_loop(self):
+                bot.submit()
+                time.sleep(5)
+    @staticmethod
+    def run_loop():
         # play sound to check if it works
-        self._play_sound_osx(self._sound_file)
+        # self._play_sound_osx(self._sound_file)
         while True:
             logging.info("One more round")
-            self.run_once()
-            time.sleep(self.wait_time)
+            BerlinBot.run_once()
+            time.sleep(5)
 
     # stolen from https://github.com/JaDogg/pydoro/blob/develop/pydoro/pydoro_core/sound.py
     @staticmethod
@@ -151,4 +181,4 @@ class BerlinBot:
             sleep(nssound.duration())
 
 if __name__ == "__main__":
-    BerlinBot().run_loop()
+    BerlinBot.run_loop()
