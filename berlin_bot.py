@@ -14,7 +14,11 @@ from selenium.common.exceptions import TimeoutException
 system = system()
 
 default_timeout = 30
-default_time_sleep = 10
+default_time_sleep = 1
+
+default_implicit_waiting_time = 20
+
+sound_file = "./alarm.wav"
 
 logging.basicConfig(
     format='%(asctime)s\t%(levelname)s\t%(message)s',
@@ -24,15 +28,15 @@ logging.basicConfig(
 class WebDriver:
     def __init__(self):
         self._driver: webdriver.Chrome
-        self._implicit_wait_time = 20
 
     def __enter__(self) -> webdriver.Chrome:
         logging.info("Open browser")
+
         # some stuff that prevents us from being locked out
         options = webdriver.ChromeOptions() 
         options.add_argument('--disable-blink-features=AutomationControlled')
-        self._driver = webdriver.Chrome(options=options)
-        self._driver.implicitly_wait(self._implicit_wait_time) # seconds
+        self._driver = webdriver.Chrome(os.path.join(os.getcwd(), "chromedriver"), options=options)
+        self._driver.implicitly_wait(default_implicit_waiting_time)
         self._driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         self._driver.execute_cdp_cmd('Network.setUserAgentOverride', {"userAgent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.53 Safari/537.36'})
         return self._driver
@@ -48,34 +52,20 @@ class BerlinBot:
         self._sound_file = os.path.join(os.getcwd(), "alarm.wav")
         self._error_message = """Für die gewählte Dienstleistung sind aktuell keine Termine frei! Bitte"""
 
-    def clickPATH(self, element: str):
-        try:
-            elem = WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, element)))
-            self.driver.find_element(By.XPATH, element).click()
-        except TimeoutException:
-            print(f"Element not found: {element}")
+    def clickPATH(self, path: str):
+        time.sleep(default_time_sleep)
+        self.driver.find_element(By.XPATH, path).click()
 
     
     def clickID(self, id: str):
-        try:
-            WebDriverWait(self.driver, default_timeout).until(EC.element_to_be_clickable((By.ID, id)))
-            self.driver.find_element(By.ID, id).click()
-        except TimeoutException:
-            print(f"Element not found: {id}")
-            time.sleep(default_time_sleep)
-            self.driver.find_element(By.ID, id).click()
+        time.sleep(default_time_sleep)
+        self.driver.find_element(By.ID, id).click()
 
     def select(self, id: str, text: str):
-        try:
-            # WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.ID, id)))
-            WebDriverWait(self.driver, default_timeout).until(EC.visibility_of_element_located((By.ID, id)))
-            s = Select(self.driver.find_element(By.ID, id))
-            s.select_by_visible_text(text)
-        except TimeoutException:
-            print(f"Element not found: {id}")
-            time.sleep(default_time_sleep)
-            s = Select(self.driver.find_element(By.ID, id))
-            s.select_by_visible_text(text)
+        time.sleep(default_time_sleep)
+        element = self.driver.find_element(By.ID, id)
+        s = Select(element)
+        s.select_by_visible_text(text)
 
     def enter_start_page(self):
         logging.info("Visit start page")
@@ -88,6 +78,7 @@ class BerlinBot:
 
         self.clickPATH('//*[@id="xi-div-1"]/div[4]/label[2]/p')
         self.clickID('applicationForm:managedForm:proceed')
+        time.sleep(5)
 
     def enter_form(self):
         logging.info("Fill out form")
@@ -119,7 +110,7 @@ class BerlinBot:
     def _success(self):
         logging.info("!!!SUCCESS - do not close the window!!!!")
         while True:
-            self._play_sound_osx(self._sound_file)
+            self._play_sound_osx(self._sound_file, 10)
             time.sleep(5)
         
         # todo play something and block the browser
@@ -134,7 +125,8 @@ class BerlinBot:
 
             # retry submit
             for _ in range(20):
-                if "Auswahl Termin" in driver.page_source:
+                if "keine Termine" in driver.page_source:
+                # if "Auswahl Termin" in driver.page_source:
                     bot._success()
                 logging.info("Retry submitting form")
                 bot.submit()
@@ -142,7 +134,7 @@ class BerlinBot:
     @staticmethod
     def run_loop():
         # play sound to check if it works
-        # self._play_sound_osx(self._sound_file)
+        BerlinBot._play_sound_osx(sound_file)
         while True:
             logging.info("One more round")
             BerlinBot.run_once()
@@ -150,7 +142,7 @@ class BerlinBot:
 
     # stolen from https://github.com/JaDogg/pydoro/blob/develop/pydoro/pydoro_core/sound.py
     @staticmethod
-    def _play_sound_osx(sound, block=True):
+    def _play_sound_osx(sound, t = 0):
         """
         Utilizes AppKit.NSSound. Tested and known to work with MP3 and WAVE on
         OS X 10.11 with Python 2.7. Probably works with anything QuickTime supports.
@@ -160,25 +152,11 @@ class BerlinBot:
         http://stackoverflow.com/a/34568298/901641
         I never would have tried using AppKit.NSSound without seeing his code.
         """
-        from AppKit import NSSound
-        from Foundation import NSURL
-        from time import sleep
-
         logging.info("Play sound")
-        if "://" not in sound:
-            if not sound.startswith("/"):
-                from os import getcwd
 
-                sound = getcwd() + "/" + sound
-            sound = "file://" + sound
-        url = NSURL.URLWithString_(sound)
-        nssound = NSSound.alloc().initWithContentsOfURL_byReference_(url, True)
-        if not nssound:
-            raise IOError("Unable to load sound named: " + sound)
-        nssound.play()
-
-        if block:
-            sleep(nssound.duration())
+        from playsound import playsound
+        playsound(sound_file)
+        time.sleep(t)
 
 if __name__ == "__main__":
     BerlinBot.run_loop()
