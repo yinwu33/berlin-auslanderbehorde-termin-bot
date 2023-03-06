@@ -125,8 +125,7 @@ class BerlinBot:
 
             # retry submit
             for _ in range(20):
-                if "keine Termine" in driver.page_source:
-                # if "Auswahl Termin" in driver.page_source:
+                if "Auswahl Termin" in driver.page_source:
                     bot._success()
                 logging.info("Retry submitting form")
                 bot.submit()
