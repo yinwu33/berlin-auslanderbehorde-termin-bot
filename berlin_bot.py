@@ -163,7 +163,7 @@ class BerlinBot:
     @staticmethod
     def run_loop():
         # play sound to check if it works
-        BerlinBot._play_sound_osx(sound_file)
+        # BerlinBot._play_sound_osx(sound_file)
         while True:
             logging.info("One more round")
             BerlinBot.run_once()
