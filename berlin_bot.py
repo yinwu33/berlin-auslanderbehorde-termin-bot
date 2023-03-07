@@ -14,7 +14,7 @@ from selenium.common.exceptions import TimeoutException
 system = system()
 
 default_timeout = 30
-default_time_sleep = 1
+default_time_sleep = 2
 
 default_implicit_waiting_time = 20
 
@@ -71,6 +71,7 @@ class BerlinBot:
             self.clickID(id)
 
     def select(self, id: str, text: str):
+        time.sleep(default_time_sleep)
         try:
             element = self.driver.find_element(By.ID, id)   
             s = Select(element)
