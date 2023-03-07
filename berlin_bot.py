@@ -36,7 +36,7 @@ class WebDriver:
         options = webdriver.ChromeOptions() 
         options.add_argument('--disable-blink-features=AutomationControlled')
         self._driver = webdriver.Chrome(os.path.join(os.getcwd(), "chromedriver"), options=options)
-        self._driver.implicitly_wait(default_implicit_waiting_time)
+        # self._driver.implicitly_wait(default_implicit_waiting_time)
         self._driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         self._driver.execute_cdp_cmd('Network.setUserAgentOverride', {"userAgent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.53 Safari/537.36'})
         return self._driver
@@ -54,18 +54,29 @@ class BerlinBot:
 
     def clickPATH(self, path: str):
         time.sleep(default_time_sleep)
-        self.driver.find_element(By.XPATH, path).click()
+        try:
+            WebDriverWait(self.driver, self.wait_time).until(EC.element_to_be_clickable((By.XPATH, path)))
+            self.driver.find_element(By.XPATH, path).click()
+        except:
+            self.clickPATH(path)
 
     
     def clickID(self, id: str):
         time.sleep(default_time_sleep)
-        self.driver.find_element(By.ID, id).click()
+        try:
+            WebDriverWait(self.driver, self.wait_time).until(EC.element_to_be_clickable((By.ID, id)))
+            self.driver.find_element(By.ID, id).click()
+        except:
+            self.clickID(id)
 
     def select(self, id: str, text: str):
-        time.sleep(default_time_sleep)
-        element = self.driver.find_element(By.ID, id)
-        s = Select(element)
-        s.select_by_visible_text(text)
+        try:
+            element = self.driver.find_element(By.ID, id)   
+            s = Select(element)
+            s.select_by_visible_text(text)
+        except:
+            self.select(id, text)
+
 
     def enter_start_page(self):
         logging.info("Visit start page")
@@ -84,12 +95,16 @@ class BerlinBot:
         logging.info("Fill out form")
 
         # select china
+        self.wait_for_text("Staatsangehörigkeit")
         self.select('xi-sel-400', 'China')
 
+
         # eine person
+        self.wait_for_text("Anzahl der Personen")
         self.select('xi-sel-422', 'eine Person')
 
         # no family
+        self.wait_for_text("Leben Sie in Berlin zusammen mit einem Familienangehörigen (z.B. Ehepartner, Kind)")
         self.select('xi-sel-427', 'nein')
 
         # extend stay
@@ -101,11 +116,12 @@ class BerlinBot:
         # b/c of stufy
         self.clickPATH('//*[@id="inner-479-0-2"]/div/div[4]/div/div[3]/label')
 
-        # submit form
-        self.submit()
-
     def submit(self):
-        self.clickID('applicationForm:managedForm:proceed')
+        try:
+            WebDriverWait(self.driver, self.wait_time).until(EC.element_to_be_clickable((By.ID, 'applicationForm:managedForm:proceed')))
+            self.driver.find_element(By.ID, 'applicationForm:managedForm:proceed').click()
+        except:
+            self.submit()
     
     def _success(self):
         logging.info("!!!SUCCESS - do not close the window!!!!")
@@ -115,6 +131,14 @@ class BerlinBot:
         
         # todo play something and block the browser
 
+    def wait_for_text(self, text: str, timeout: int = 30):
+        while text not in self.driver.page_source:
+            time.sleep(1)
+            timeout -= 1
+            if timeout == 0:
+                raise TimeoutException("Timeout while waiting for text")
+        time.sleep(2)
+
     @staticmethod
     def run_once():
         with WebDriver() as driver:
@@ -122,14 +146,17 @@ class BerlinBot:
             bot.enter_start_page()
             bot.tick_off_some_bullshit()
             bot.enter_form()
+            time.sleep(3)
 
             # retry submit
             for _ in range(20):
-                if "Auswahl Termin" in driver.page_source:
-                    bot._success()
-                logging.info("Retry submitting form")
                 bot.submit()
-                time.sleep(5)
+                if "Auswahl Uhrzeit" in bot.driver.page_source:
+                    bot._success()
+                elif bot._error_message in bot.driver.page_source:
+                    logging.info("Retry submission")
+                else:
+                    pass
     @staticmethod
     def run_loop():
         # play sound to check if it works
@@ -144,7 +171,7 @@ class BerlinBot:
     def _play_sound_osx(sound, t = 0):
         """
         Utilizes AppKit.NSSound. Tested and known to work with MP3 and WAVE on
-        OS X 10.11 with Python 2.7. Probably works with anything QuickTime supports.
+        OS X 10.11 with Python 2.7. Probably works with anything QuickTime suports.
         Probably works on OS X 10.5 and newer. Probably works with all versions of
         Python.
         Inspired by (but not copied from) Aaron's Stack Overflow answer here:
