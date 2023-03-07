@@ -67,6 +67,7 @@ class BerlinBot:
             WebDriverWait(self.driver, self.wait_time).until(EC.element_to_be_clickable((By.ID, id)))
             self.driver.find_element(By.ID, id).click()
         except:
+            time.sleep(3)
             self.clickID(id)
 
     def select(self, id: str, text: str):
@@ -75,6 +76,7 @@ class BerlinBot:
             s = Select(element)
             s.select_by_visible_text(text)
         except:
+            time.sleep(3)
             self.select(id, text)
 
 
@@ -121,6 +123,7 @@ class BerlinBot:
             WebDriverWait(self.driver, self.wait_time).until(EC.element_to_be_clickable((By.ID, 'applicationForm:managedForm:proceed')))
             self.driver.find_element(By.ID, 'applicationForm:managedForm:proceed').click()
         except:
+            time.sleep(3)
             self.submit()
     
     def _success(self):
