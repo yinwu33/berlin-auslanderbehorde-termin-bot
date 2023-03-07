@@ -118,7 +118,7 @@ class BerlinBot:
         self.clickPATH('//*[@id="inner-479-0-2"]/div/div[3]/label/p')
 
         # b/c of stufy
-        self.clickPATH('//*[@id="inner-479-0-2"]/div/div[4]/div/div[3]/label')
+        self.clickPATH('//*[@id="inner-479-0-2"]/div/div[4]/div/div[1]/label')
 
     def submit(self):
         time.sleep(default_time_sleep)
