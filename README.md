@@ -9,7 +9,7 @@ Take a look at the video [Hinter verschlossenen Türen – Mysterium Ausländerb
 
 ## Setup
 
-* `git clone https://github.com/capital-G/berlin-auslanderbehorde-termin-bot.git`
+* `git clone https://github.com/yinwu33/berlin-auslanderbehorde-termin-bot.git`
 * Setup a virtualenv via `virtualenv venv` and activate it
 * Install dependencies via `pip3 install -r requirements.txt`
 * Put a `chromedriver` binary from <https://chromedriver.chromium.org/downloads> into the directory

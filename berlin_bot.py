@@ -132,7 +132,7 @@ class BerlinBot:
     def _success(self):
         logging.info("!!!SUCCESS - do not close the window!!!!")
         while True:
-            self._play_sound_osx(self._sound_file, 10)
+            self._play_sound(self._sound_file, 10)
             time.sleep(5)
         
         # todo play something and block the browser
@@ -155,7 +155,7 @@ class BerlinBot:
             time.sleep(3)
 
             # retry submit
-            while time.time() - bot.start_time < 60 * 25
+            while time.time() - bot.start_time < 60 * 25:
                 bot.submit()
                 if "Auswahl Uhrzeit" in bot.driver.page_source:
                     bot._success()
@@ -166,7 +166,7 @@ class BerlinBot:
     @staticmethod
     def run_loop():
         # play sound to check if it works
-        # BerlinBot._play_sound_osx(sound_file)
+        BerlinBot._play_sound(sound_file)
         while True:
             logging.info("One more round")
             BerlinBot.run_once()
@@ -174,16 +174,7 @@ class BerlinBot:
 
     # stolen from https://github.com/JaDogg/pydoro/blob/develop/pydoro/pydoro_core/sound.py
     @staticmethod
-    def _play_sound_osx(sound, t = 0):
-        """
-        Utilizes AppKit.NSSound. Tested and known to work with MP3 and WAVE on
-        OS X 10.11 with Python 2.7. Probably works with anything QuickTime suports.
-        Probably works on OS X 10.5 and newer. Probably works with all versions of
-        Python.
-        Inspired by (but not copied from) Aaron's Stack Overflow answer here:
-        http://stackoverflow.com/a/34568298/901641
-        I never would have tried using AppKit.NSSound without seeing his code.
-        """
+    def _play_sound(sound, t = 0):
         logging.info("Play sound")
 
         from playsound import playsound
