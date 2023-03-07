@@ -51,6 +51,7 @@ class BerlinBot:
         self.wait_time = 20
         self._sound_file = os.path.join(os.getcwd(), "alarm.wav")
         self._error_message = """Für die gewählte Dienstleistung sind aktuell keine Termine frei! Bitte"""
+        self.start_time = time.time()
 
     def clickPATH(self, path: str):
         time.sleep(default_time_sleep)
@@ -120,6 +121,7 @@ class BerlinBot:
         self.clickPATH('//*[@id="inner-479-0-2"]/div/div[4]/div/div[3]/label')
 
     def submit(self):
+        time.sleep(default_time_sleep)
         try:
             WebDriverWait(self.driver, self.wait_time).until(EC.element_to_be_clickable((By.ID, 'applicationForm:managedForm:proceed')))
             self.driver.find_element(By.ID, 'applicationForm:managedForm:proceed').click()
@@ -153,7 +155,7 @@ class BerlinBot:
             time.sleep(3)
 
             # retry submit
-            for _ in range(20):
+            while time.time() - bot.start_time < 60 * 25
                 bot.submit()
                 if "Auswahl Uhrzeit" in bot.driver.page_source:
                     bot._success()
