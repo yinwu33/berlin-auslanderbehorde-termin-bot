@@ -7,12 +7,19 @@ I did not want to open source this as this makes it harder for the people withou
 Take a look at the video [Hinter verschlossenen Türen – Mysterium Ausländerbehörde - ZDF Magazin Royale
 ](https://www.youtube.com/watch?v=s7HrAGlni50) to find out more about the bad shape of this agency.
 
+## Requirements
+
+* Linux, Ubuntu, MacOS
+* Chrome
+* Python3
+
 ## Setup
 
 * `git clone https://github.com/yinwu33/berlin-auslanderbehorde-termin-bot.git`
-* Setup a virtualenv via `virtualenv venv` and activate it
+* (Optional) Setup a virtualenv via `virtualenv venv` and activate it
 * Install dependencies via `pip3 install -r requirements.txt`
-* Put a `chromedriver` binary from <https://chromedriver.chromium.org/downloads> into the directory
+* Check the version of your Chrome through: Help -> About Google Chrome
+* Download the chromedriver from <https://chromedriver.chromium.org/downloads> and extract it into the root directory
 * Configure `berlin_bot.py` according to your needs (see below)
 * Start the bot via `python3 berlin_bot.py`
 
