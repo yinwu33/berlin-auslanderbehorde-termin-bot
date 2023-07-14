@@ -3,6 +3,7 @@ import os
 import logging
 from platform import system
 
+import random
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
@@ -13,10 +14,8 @@ from selenium.common.exceptions import TimeoutException
 
 system = system()
 
-default_timeout = 30
 default_time_sleep = 2
-
-default_implicit_waiting_time = 20
+max_time_resubmit = 60 * 15
 
 sound_file = "./alarm.wav"
 
@@ -36,7 +35,6 @@ class WebDriver:
         options = webdriver.ChromeOptions() 
         options.add_argument('--disable-blink-features=AutomationControlled')
         self._driver = webdriver.Chrome(os.path.join(os.getcwd(), "chromedriver"), options=options)
-        # self._driver.implicitly_wait(default_implicit_waiting_time)
         self._driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         self._driver.execute_cdp_cmd('Network.setUserAgentOverride', {"userAgent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.53 Safari/537.36'})
         return self._driver
@@ -48,15 +46,20 @@ class WebDriver:
 class BerlinBot:
     def __init__(self, driver: webdriver.Chrome):
         self.driver = driver
-        self.wait_time = 20
         self._sound_file = os.path.join(os.getcwd(), "alarm.wav")
         self._error_message = """Für die gewählte Dienstleistung sind aktuell keine Termine frei! Bitte"""
         self.start_time = time.time()
 
+    def get_wait_time(self, init:list = [10, 20]):
+        options = range(init[0], init[1], 1)
+        chose_time = random.choice(options)
+        return chose_time
+
+
     def clickPATH(self, path: str):
         time.sleep(default_time_sleep)
         try:
-            WebDriverWait(self.driver, self.wait_time).until(EC.element_to_be_clickable((By.XPATH, path)))
+            WebDriverWait(self.driver, self.get_wait_time()).until(EC.element_to_be_clickable((By.XPATH, path)))
             self.driver.find_element(By.XPATH, path).click()
         except:
             self.clickPATH(path)
@@ -65,7 +68,7 @@ class BerlinBot:
     def clickID(self, id: str):
         time.sleep(default_time_sleep)
         try:
-            WebDriverWait(self.driver, self.wait_time).until(EC.element_to_be_clickable((By.ID, id)))
+            WebDriverWait(self.driver, self.get_wait_time()).until(EC.element_to_be_clickable((By.ID, id)))
             self.driver.find_element(By.ID, id).click()
         except:
             time.sleep(3)
@@ -96,12 +99,10 @@ class BerlinBot:
         time.sleep(5)
 
     def enter_form(self):
-        logging.info("Fill out form")
-
+        
         # select china
         self.wait_for_text("Staatsangehörigkeit")
         self.select('xi-sel-400', 'China')
-
 
         # eine person
         self.wait_for_text("Anzahl der Personen")
@@ -114,36 +115,37 @@ class BerlinBot:
         # extend stay
         self.clickPATH('//*[@id="xi-div-30"]/div[2]/label/p')
 
-        # click on study group
+        # click employment
         self.clickPATH('//*[@id="inner-479-0-2"]/div/div[3]/label/p')
 
-        # b/c of stufy
-        self.clickPATH('//*[@id="inner-479-0-2"]/div/div[4]/div/div[1]/label')
+        # on blue card
+        self.clickPATH('//*[@id="SERVICEWAHL_DE479-0-2-1-324659"]')
+
+        logging.info("Fill out form")
+
 
     def submit(self):
-        time.sleep(default_time_sleep)
+        wait_time = self.get_wait_time([default_time_sleep, default_time_sleep*2])
+        time.sleep(wait_time)
         try:
-            WebDriverWait(self.driver, self.wait_time).until(EC.element_to_be_clickable((By.ID, 'applicationForm:managedForm:proceed')))
-            self.driver.find_element(By.ID, 'applicationForm:managedForm:proceed').click()
+            self.clickPATH('//*[@id="applicationForm:managedForm:proceed"]')
         except:
-            time.sleep(3)
-            self.submit()
+            logging.info("Retry fill out form")
+            self.enter_form()
     
     def _success(self):
         logging.info("!!!SUCCESS - do not close the window!!!!")
         while True:
             self._play_sound(self._sound_file, 10)
             time.sleep(5)
-        
-        # todo play something and block the browser
 
     def wait_for_text(self, text: str, timeout: int = 30):
         while text not in self.driver.page_source:
-            time.sleep(1)
+            time.sleep(default_time_sleep)
             timeout -= 1
             if timeout == 0:
                 raise TimeoutException("Timeout while waiting for text")
-        time.sleep(2)
+        time.sleep(default_time_sleep)
 
     @staticmethod
     def run_once():
@@ -152,10 +154,10 @@ class BerlinBot:
             bot.enter_start_page()
             bot.tick_off_some_bullshit()
             bot.enter_form()
-            time.sleep(3)
+            time.sleep(default_time_sleep)
 
             # retry submit
-            while time.time() - bot.start_time < 60 * 25:
+            while time.time() - bot.start_time < max_time_resubmit:
                 bot.submit()
                 if "Auswahl Uhrzeit" in bot.driver.page_source:
                     bot._success()
@@ -163,6 +165,7 @@ class BerlinBot:
                     logging.info("Retry submission")
                 else:
                     pass
+
     @staticmethod
     def run_loop():
         # play sound to check if it works
