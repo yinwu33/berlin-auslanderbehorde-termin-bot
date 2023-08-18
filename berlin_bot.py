@@ -12,6 +12,37 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
+Target="Study"
+
+Visa_Extend=2
+Visa_Class=Visa_Extend
+
+# Study
+study_type=dict(
+    Language_Course="SERVICEWAHL_DE479-0-2-3-324289",
+    Study="SERVICEWAHL_DE479-0-2-3-305244",
+)
+
+# Work
+work_type=dict(
+    Acadamic_Graduate="SERVICEWAHL_DE479-0-2-1-329328",
+    Find_Job="SERVICEWAHL_DE479-0-2-1-324661",
+    Blue_Card="SERVICEWAHL_DE479-0-2-1-324659",
+)
+
+visa_class_2_map=dict(
+    study_type=1,
+    work_type=3,
+)
+
+Visa_Class_2 = None
+
+if Target == "Study":
+    Visa_Class_2=visa_class_2_map["study_type"]
+elif Target == "Work":
+    Visa_Class_2=visa_class_2_map["work_type"]
+
+
 system = system()
 
 default_time_sleep = 2
@@ -113,10 +144,10 @@ class BerlinBot:
         self.select('xi-sel-427', 'nein')
 
         # extend stay
-        self.clickPATH('//*[@id="xi-div-30"]/div[2]/label/p')
+        self.clickPATH(f'//*[@id="xi-div-30"]/div[{Visa_Class}]/label/p')
 
         # click employment
-        self.clickPATH('//*[@id="inner-479-0-2"]/div/div[3]/label/p')
+        self.clickPATH(f'//*[@id="inner-479-0-2"]/div/div[{Visa_Class_2}]/label/p')
 
         # on blue card
         self.clickPATH('//*[@id="SERVICEWAHL_DE479-0-2-1-324659"]')
